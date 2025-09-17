@@ -1,0 +1,11 @@
+{
+  "name": "todo-worker",
+  "version": "1.0.0",
+  "main": "src/worker.js",
+  "license": "MIT",
+  "dependencies": {
+    "amqplib": "^0.10.3",
+    "dotenv": "^16.0.0",
+    "mysql2": "^3.2.0"
+  }
+}

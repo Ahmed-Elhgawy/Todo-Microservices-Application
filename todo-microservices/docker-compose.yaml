@@ -1,0 +1,78 @@
+version: "3.8"
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: PaSsW0Rd!
+      MYSQL_DATABASE: todo_app
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    expose:
+      - "3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  rabbitmq:
+    image: rabbitmq:3.11-management
+    container_name: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    expose:
+      - "5672"
+      - "15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  todo-api:
+    build: ./api
+    container_name: api
+    restart: always
+    env_file:
+      - ./api/.env
+    expose:
+      - "3000"
+    depends_on:
+      - mysql
+      - rabbitmq
+
+  todo-worker:
+    build: ./worker
+    container_name: worker
+    restart: always
+    env_file:
+      - ./worker/.env
+    depends_on:
+      - mysql
+      - rabbitmq
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: always
+    expose:
+      - "80"
+    depends_on:
+      - todo-api
+
+  proxy:
+    image: nginx:alpine
+    ports:
+      - "80:80"   # public entrypoint
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - todo-api
+
+volumes:
+  mysql-data:

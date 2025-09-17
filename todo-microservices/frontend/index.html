@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Todo Microservices</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Todo List</h1>
+
+    <form id="todo-form">
+      <input id="title" placeholder="Title" required maxlength="200" />
+      <textarea id="description" placeholder="Description"></textarea>
+      <button type="submit">Add Todo</button>
+    </form>
+
+    <section id="todos"></section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
