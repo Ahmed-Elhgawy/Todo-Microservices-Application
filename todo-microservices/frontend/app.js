@@ -1,4 +1,4 @@
-const API = "/api";
+const API = "http://api-service:3000";
 
 async function fetchTodos() {
   const res = await fetch(`${API}/todos`);

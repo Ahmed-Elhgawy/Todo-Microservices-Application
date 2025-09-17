@@ -33,7 +33,7 @@ services:
       timeout: 5s
       retries: 5
 
-  todo-api:
+  api-service:
     build: ./api
     container_name: api
     restart: always
@@ -45,7 +45,7 @@ services:
       - mysql
       - rabbitmq
 
-  todo-worker:
+  worker:
     build: ./worker
     container_name: worker
     restart: always
@@ -55,14 +55,14 @@ services:
       - mysql
       - rabbitmq
 
-  frontend:
+  frontend-service:
     build: ./frontend
     container_name: frontend
     restart: always
     expose:
       - "80"
     depends_on:
-      - todo-api
+      - api-service
 
   proxy:
     image: nginx:alpine
@@ -71,8 +71,8 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - frontend
-      - todo-api
+      - frontend-service
+      - api-service
 
 volumes:
   mysql-data:
