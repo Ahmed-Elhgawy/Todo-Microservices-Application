@@ -26,10 +26,13 @@ pipeline {
                     sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format template --template "@contrib/html.tpl" -o trivy-frontend.html frontend || true'
                 }
 
-                publishHTML(target: [
+                publishHTML([
                     reportDir: '.',
                     reportFiles: 'trivy-api.html,trivy-worker.html,trivy-frontend.html',
-                    reportName: 'Trivy Vulnerability Report'
+                    reportName: 'Trivy Vulnerability Report',
+                    keepAll: true,
+                    alwaysLinkToLastBuild: true,
+                    allowMissing: false
                 ])
             }
         }
