@@ -21,9 +21,9 @@ pipeline {
         stage('Chech Container Security') {
             steps {
                 script {
-                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format template --template "@contrib/html.tpl" -o trivy-api.html api || true'
-                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format template --template "@contrib/html.tpl" -o trivy-worker.html worker || true'
-                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format template --template "@contrib/html.tpl" -o trivy-frontend.html frontend || true'
+                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format template --template "@/usr/bin/html.tpl" -o trivy-api.html api'
+                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format template --template "@/usr/bin/html.tpl" -o trivy-worker.html worker'
+                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format template --template "@/usr/bin/html.tpl" -o trivy-frontend.html frontend'
                 }
 
                 publishHTML([
