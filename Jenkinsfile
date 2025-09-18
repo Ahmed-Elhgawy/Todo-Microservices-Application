@@ -1,6 +1,12 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_INSTANCE_IP = "54.147.51.192"
+        APP_REPO = "https://github.com/Ahmed-Elhgawy/todo-micrservice-app.git"
+        ECR_REPO = "${ECR_REPO}"
+    }
+
     stages {
         stage('build Docker Images') {
             steps {
@@ -15,10 +21,14 @@ pipeline {
         stage('Chech Container Security') {
             steps {
                 script {
-                    sh 'trivy image --severity CRITICAL api'
-                    sh 'trivy image --severity CRITICAL worker'
-                    sh 'trivy image --severity CRITICAL frontend'
+                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format sarif -o trivy-api.sarif api || true'
+                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format sarif -o trivy-worker.sarif worker || true'
+                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format sarif -o trivy-frontend.sarif frontend || true'
                 }
+
+                recordIssues enabledForFailure: true, tools: [sarif(pattern: 'trivy-*.sarif')]
+
+                archiveArtifacts artifacts: 'trivy-*.sarif', fingerprint: true
             }
         }
 
@@ -27,11 +37,11 @@ pipeline {
                 script {
                     sshagent(credentials: ['docker_instance_privateKey']) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no ec2-user@54.147.51.192 "
+                            ssh -o StrictHostKeyChecking=no ec2-user@${DOCKER_INSTANCE_IP} "
                                 if [ -d "~/todo-micrservice-app/.git" ]; then
                                     cd ~/todo-micrservice-app && git pull origin main
                                 else
-                                    git clone https://github.com/Ahmed-Elhgawy/todo-micrservice-app.git
+                                    git clone ${APP_REPO}
                                 fi
                             "
                         """
@@ -45,7 +55,7 @@ pipeline {
                 script {
                     sshagent(credentials: ['docker_instance_privateKey']) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no ec2-user@54.147.51.192 "
+                            ssh -o StrictHostKeyChecking=no ec2-user@${DOCKER_INSTANCE_IP} "
                                 docker-compose -f todo-micrservice-app/todo-microservices/docker-compose.yaml up -d --build
                             "
                         """
@@ -59,7 +69,7 @@ pipeline {
                 script {
                     sleep 30
                     sh """
-                        if curl -s -o /dev/null -w "%{http_code}" http://54.147.51.192 | grep -q "200"; then
+                        if curl -s -o /dev/null -w "%{http_code}" http://${DOCKER_INSTANCE_IP} | grep -q "200"; then
                             echo "✅ Application is running"                        
                         else
                             echo "❌ Application is NOT running"
@@ -75,7 +85,7 @@ pipeline {
                 script {
                     sshagent(credentials: ['docker_instance_privateKey']) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no ec2-user@54.147.51.192 "
+                            ssh -o StrictHostKeyChecking=no ec2-user@${DOCKER_INSTANCE_IP} "
                                 docker-compose -f todo-micrservice-app/todo-microservices/docker-compose.yaml down
                             "
                         """
@@ -89,14 +99,14 @@ pipeline {
                 script {
                     sshagent(credentials: ['docker_instance_privateKey']) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no ec2-user@54.147.51.192 "
-                                aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 054037114964.dkr.ecr.us-east-1.amazonaws.com
-                                docker tag todo-microservices-api-service 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-api:latest
-                                docker tag todo-microservices-worker 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-worker:latest
-                                docker tag todo-microservices-frontend-service 054037114964.dkr.ecr.us-east-1.amazonaws.com/frontend:latest
-                                docker push 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-api:latest
-                                docker push 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-worker:latest
-                                docker push 054037114964.dkr.ecr.us-east-1.amazonaws.com/frontend:latest
+                            ssh -o StrictHostKeyChecking=no ec2-user@${DOCKER_INSTANCE_IP} "
+                                aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REPO}
+                                docker tag todo-microservices-api-service ${ECR_REPO}/todo-api:latest
+                                docker tag todo-microservices-worker ${ECR_REPO}/todo-worker:latest
+                                docker tag todo-microservices-frontend-service ${ECR_REPO}/frontend:latest
+                                docker push ${ECR_REPO}/todo-api:latest
+                                docker push ${ECR_REPO}/todo-worker:latest
+                                docker push ${ECR_REPO}/frontend:latest
                             "
                         """
                         
