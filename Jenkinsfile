@@ -132,17 +132,19 @@ pipeline {
 
         stage('Manual Gate') {
             steps {
+                slackSend color: (userInput == 'Abort' ? 'danger' : 'good'),
+                    message: "User chose: ${userInput} in branch ${env.BRANCH_NAME}"
                 script {
                     def userInput = input(
                         id: 'UserInput',
-                        message: "Choose the next action: you are in ${env.BRANCH_NAME}",
+                        message: "Choose the next action:",
                         parameters: [
                             choice(name: 'ACTION', choices: ['Continue', 'Abort'], description: 'Select what to do')
                         ]
                     )
-                    slackSend color: 'good', message: "Waiting for Admin Response..."
                     echo "You chose: ${userInput}"
                     if (userInput == 'Abort') {
+                        currentBuild.result = 'ABORTED'
                         error("Pipeline aborted by user")
                     }
                 }
@@ -150,9 +152,6 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes Cluster') {
-            when {
-               branch 'main'
-            }
             steps {
                 script {
                     withKubeConfig(credentialsId: 'k8s-jenkins-token', namespace: 'default', serverUrl: 'https://192.168.49.2:8443') {
