@@ -132,8 +132,7 @@ pipeline {
 
         stage('Manual Gate') {
             steps {
-                slackSend color: (userInput == 'Abort' ? 'danger' : 'good'),
-                    message: "User chose: ${userInput} in branch ${env.BRANCH_NAME}"
+                slackSend color: 'good', message: "Waiting for Admin Response..."
                 script {
                     def userInput = input(
                         id: 'UserInput',
