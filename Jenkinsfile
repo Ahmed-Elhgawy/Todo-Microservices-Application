@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_INSTANCE_IP = "54.147.51.192"
+        DOCKER_INSTANCE_IP = "54.242.126.17"
         APP_REPO = "https://github.com/Ahmed-Elhgawy/todo-micrservice-app.git"
         ECR_REPO = "054037114964.dkr.ecr.us-east-1.amazonaws.com"
     }
