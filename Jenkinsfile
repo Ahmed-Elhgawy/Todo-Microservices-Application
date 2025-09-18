@@ -88,10 +88,10 @@ pipeline {
             }
             post {
                 success {
-                    slackSend color: "good", message: "✅ Application is running"
+                    slackSend color: "good", message: "✅ The Test successed"
                 }
                 failure {
-                    slackSend color: "danger", message: "❌ Application is NOT running"
+                    slackSend color: "danger", message: "❌ The Test Failed"
                 }
             }
         }
@@ -125,7 +125,6 @@ pipeline {
                                 docker push ${ECR_REPO}/frontend:latest
                             "
                         """
-                        
                     }
                 }
             }
@@ -136,12 +135,12 @@ pipeline {
                 script {
                     def userInput = input(
                         id: 'UserInput',
-                        message: "Choose the next action: you are in ${BRANCH_NAME}",
+                        message: "Choose the next action: you are in ${env.BRANCH_NAME}",
                         parameters: [
                             choice(name: 'ACTION', choices: ['Continue', 'Abort'], description: 'Select what to do')
                         ]
                     )
-
+                    slackSend color: 'good', message: "Waiting for Admin Response..."
                     echo "You chose: ${userInput}"
                     if (userInput == 'Abort') {
                         error("Pipeline aborted by user")
@@ -163,5 +162,16 @@ pipeline {
             }
         }
     
+    }
+    post {
+        success {
+            slackSend color: 'good', message: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+        }
+        failure {
+            slackSend color: 'danger', message: "❌ FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+        }
+        unstable {
+            slackSend color: 'warning', message: "⚠️ UNSTABLE: ${env.JOB_NAME} #${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+        }
     }
 }
