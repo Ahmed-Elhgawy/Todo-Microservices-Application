@@ -1,7 +1,8 @@
 node_modules
 commands.sh
 
-kubernetes/
+*-secret.yaml
+jenkins-credentials/
 
 terraform/
 

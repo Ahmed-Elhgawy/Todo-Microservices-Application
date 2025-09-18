@@ -1,0 +1,145 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: api
+  name: api-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - image: 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-api:latest
+        name: api  
+        resources:
+          limits:
+            memory: "64Mi"
+            cpu: "250m"
+          requests:
+            memory: "32Mi"
+            cpu: "125m"
+        ports:
+        - containerPort: 3000
+        env:
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              key: MYSQL_DATABASE
+              name: database-secret
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              key: MYSQL_USER
+              name: database-secret
+        - name: DB_PASS
+          valueFrom:
+            secretKeyRef:
+              key: MYSQL_PASSWORD
+              name: database-secret
+        - name: DB_PORT
+          value: "3306"
+        - name: DB_HOST
+          value: database-headless
+        - name: PORT
+          value: "3000"
+        - name: RABBIT_URL
+          valueFrom:
+            secretKeyRef:
+              key: RABBITMQ_URL
+              name: rabbitmq-secret
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: worker
+  name: worker-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - image: 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-worker:latest
+        name: worker  
+        resources:
+          limits:
+            memory: "64Mi"
+            cpu: "250m"
+          requests:
+            memory: "32Mi"
+            cpu: "125m"
+        env:
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              key: MYSQL_DATABASE
+              name: database-secret
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              key: MYSQL_USER
+              name: database-secret
+        - name: DB_PASS
+          valueFrom:
+            secretKeyRef:
+              key: MYSQL_PASSWORD
+              name: database-secret
+        - name: DB_PORT
+          value: "3306"
+        - name: DB_HOST
+          value: database-headless
+        - name: RABBIT_URL
+          valueFrom:
+            secretKeyRef:
+              key: RABBITMQ_URL
+              name: rabbitmq-secret
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: frontend
+  name: frontend-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - image: 054037114964.dkr.ecr.us-east-1.amazonaws.com/frontend:latest
+        imagePullPolicy: Always
+        name: frontend  
+        resources:
+          limits:
+            memory: "64Mi"
+            cpu: "250m"
+          requests:
+            memory: "32Mi"
+            cpu: "125m"
+        ports:
+        - containerPort: 80
