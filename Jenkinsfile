@@ -136,7 +136,7 @@ pipeline {
                 script {
                     def userInput = input(
                         id: 'UserInput',
-                        message: 'Choose the next action:',
+                        message: "Choose the next action: you are in ${BRANCH_NAME}",
                         parameters: [
                             choice(name: 'ACTION', choices: ['Continue', 'Abort'], description: 'Select what to do')
                         ]
