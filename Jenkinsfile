@@ -21,14 +21,16 @@ pipeline {
         stage('Chech Container Security') {
             steps {
                 script {
-                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format sarif -o trivy-api.sarif api || true'
-                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format sarif -o trivy-worker.sarif worker || true'
-                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format sarif -o trivy-frontend.sarif frontend || true'
+                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format template --template "@contrib/html.tpl" -o trivy-api.html api || true'
+                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format template --template "@contrib/html.tpl" -o trivy-worker.html worker || true'
+                    sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format template --template "@contrib/html.tpl" -o trivy-frontend.html frontend || true'
                 }
 
-                recordIssues enabledForFailure: true, tools: [sarif(pattern: 'trivy-*.sarif')]
-
-                archiveArtifacts artifacts: 'trivy-*.sarif', fingerprint: true
+                publishHTML(target: [
+                    reportDir: '.',
+                    reportFiles: 'trivy-api.html,trivy-worker.html,trivy-frontend.html',
+                    reportName: 'Trivy Vulnerability Report'
+                ])
             }
         }
 
