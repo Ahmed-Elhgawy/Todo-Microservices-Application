@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_INSTANCE_IP = "54.242.126.17"
-        APP_REPO = "https://github.com/Ahmed-Elhgawy/todo-micrservice-app.git"
+        DOCKER_INSTANCE_IP = "54.91.94.212"
+        APP_REPO = "https://github.com/Ahmed-Elhgawy/todo-microservice-app.git"
+        APP_REPO_SSH = "git@github.com:Ahmed-Elhgawy/todo-microservice-app.git"
         ECR_REPO = "054037114964.dkr.ecr.us-east-1.amazonaws.com"
     }
 
@@ -46,8 +47,8 @@ pipeline {
                     sshagent(credentials: ['docker_instance_privateKey']) {
                         sh """
                             ssh -o StrictHostKeyChecking=no ec2-user@${DOCKER_INSTANCE_IP} "
-                                if [ -d "~/todo-micrservice-app/.git" ]; then
-                                    cd ~/todo-micrservice-app && git pull origin main
+                                if [ -d "~/todo-microservice-app/.git" ]; then
+                                    cd ~/todo-microservice-app && git pull origin main
                                 else
                                     git clone ${APP_REPO}
                                 fi
@@ -64,7 +65,7 @@ pipeline {
                     sshagent(credentials: ['docker_instance_privateKey']) {
                         sh """
                             ssh -o StrictHostKeyChecking=no ec2-user@${DOCKER_INSTANCE_IP} "
-                                docker-compose -f todo-micrservice-app/todo-microservices/docker-compose.yaml up -d --build
+                                docker-compose -f todo-microservice-app/todo-microservices/docker-compose.yaml up -d --build
                             "
                         """
                     }
@@ -102,7 +103,7 @@ pipeline {
                     sshagent(credentials: ['docker_instance_privateKey']) {
                         sh """
                             ssh -o StrictHostKeyChecking=no ec2-user@${DOCKER_INSTANCE_IP} "
-                                docker-compose -f todo-micrservice-app/todo-microservices/docker-compose.yaml down
+                                docker-compose -f todo-microservice-app/todo-microservices/docker-compose.yaml down
                             "
                         """
                     }
@@ -117,12 +118,12 @@ pipeline {
                         sh """
                             ssh -o StrictHostKeyChecking=no ec2-user@${DOCKER_INSTANCE_IP} "
                                 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REPO}
-                                docker tag todo-microservices-api-service ${ECR_REPO}/todo-api:latest
-                                docker tag todo-microservices-worker ${ECR_REPO}/todo-worker:latest
-                                docker tag todo-microservices-frontend-service ${ECR_REPO}/frontend:latest
-                                docker push ${ECR_REPO}/todo-api:latest
-                                docker push ${ECR_REPO}/todo-worker:latest
-                                docker push ${ECR_REPO}/frontend:latest
+                                docker tag todo-microservices-api-service ${ECR_REPO}/todo-api:${env.BUILD_URL}
+                                docker tag todo-microservices-worker ${ECR_REPO}/todo-worker:${env.BUILD_URL}
+                                docker tag todo-microservices-frontend-service ${ECR_REPO}/frontend:${env.BUILD_URL}
+                                docker push ${ECR_REPO}/todo-api:${env.BUILD_URL}
+                                docker push ${ECR_REPO}/todo-worker:${env.BUILD_URL}
+                                docker push ${ECR_REPO}/frontend:${env.BUILD_URL}
                             "
                         """
                     }
@@ -150,11 +151,30 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes Cluster') {
+        stage('Update K8s Manifest') {
             steps {
                 script {
-                    withKubeConfig(credentialsId: 'k8s-jenkins-token', namespace: 'default', serverUrl: 'https://192.168.49.2:8443') {
-                        sh 'kubectl apply -f kubernetes/.'
+                    sh """
+                       sed -i 's|${ECR_REPO}/todo-api:[^[:space:]]*|${ECR_REPO}/todo-api:${env.BUILD_URL}|' kubernetes/deployments.yaml
+                       sed -i 's|${ECR_REPO}/todo-worker:[^[:space:]]*|${ECR_REPO}/todo-worker:${env.BUILD_URL}|' kubernetes/deployments.yaml
+                       sed -i 's|${ECR_REPO}/frontend:[^[:space:]]*|${ECR_REPO}/frontend:${env.BUILD_URL}|' kubernetes/deployments.yaml
+                    """
+                }
+            }
+        }
+
+        stage('Push Updated Manifest to GitHub') {
+            steps {
+                script {
+                    sshagent(['gethub-private-key']) {
+                        sh """
+                            git config user.name "jenkins-bot"
+                            git config user.email "jenkins@example.com"
+
+                            git add kubernetes/deployments.yaml
+                            git commit -m "Update image tag to ${BUILD_NUMBER}"
+                            git push ${APP_REPO_SSH}
+                        """
                     }
                 }
             }
