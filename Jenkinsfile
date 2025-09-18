@@ -173,7 +173,7 @@ pipeline {
 
                             git add kubernetes/deployments.yaml
                             git commit -m "Update image tag to ${BUILD_NUMBER}"
-                            git push ${APP_REPO_SSH}
+                            git push ${APP_REPO_SSH} HEAD:main
                         """
                     }
                 }
