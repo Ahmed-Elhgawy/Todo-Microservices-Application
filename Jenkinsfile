@@ -27,14 +27,13 @@ pipeline {
                 script {
                     sshagent(credentials: ['docker_instance_privateKey']) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no ec2-user@54.147.51.192 <<EOF
-                                if [ -d "~/todo-micrservice-app" ]; then
-                                    cd ~/todo-micrservice-app
-                                    git pull origin main
+                            ssh -o StrictHostKeyChecking=no ec2-user@54.147.51.192 "
+                                if [ -d "~/todo-micrservice-app/.git" ]; then
+                                    cd ~/todo-micrservice-app && git pull origin main
                                 else
                                     git clone https://github.com/Ahmed-Elhgawy/todo-micrservice-app.git
                                 fi
-                            EOF
+                            "
                         """
                     }
                 }
@@ -46,9 +45,9 @@ pipeline {
                 script {
                     sshagent(credentials: ['docker_instance_privateKey']) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no ec2-user@54.147.51.192 <<EOF
+                            ssh -o StrictHostKeyChecking=no ec2-user@54.147.51.192 "
                                 docker-compose -f todo-micrservice-app/todo-microservices/docker-compose.yaml up -d --build
-                            EOF
+                            "
                         """
                     }
                 }
@@ -76,9 +75,9 @@ pipeline {
                 script {
                     sshagent(credentials: ['docker_instance_privateKey']) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no ec2-user@54.147.51.192 <<EOF
+                            ssh -o StrictHostKeyChecking=no ec2-user@54.147.51.192 "
                                 docker-compose -f todo-micrservice-app/todo-microservices/docker-compose.yaml down
-                            EOF
+                            "
                         """
                     }
                 }
@@ -89,13 +88,18 @@ pipeline {
             steps {
                 script {
                     sshagent(credentials: ['docker_instance_privateKey']) {
-                        sh 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 054037114964.dkr.ecr.us-east-1.amazonaws.com'
-                        sh 'docker tag todo-microservices-api-service 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-api:latest'
-                        sh 'docker tag todo-microservices-worker 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-worker:latest'
-                        sh 'docker tag todo-microservices-frontend-service 054037114964.dkr.ecr.us-east-1.amazonaws.com/frontend:latest'
-                        sh 'docker push 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-api:latest'
-                        sh 'docker push 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-worker:latest'
-                        sh 'docker push 054037114964.dkr.ecr.us-east-1.amazonaws.com/frontend:latest'
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ec2-user@54.147.51.192 "
+                                aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 054037114964.dkr.ecr.us-east-1.amazonaws.com
+                                docker tag todo-microservices-api-service 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-api:latest
+                                docker tag todo-microservices-worker 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-worker:latest
+                                docker tag todo-microservices-frontend-service 054037114964.dkr.ecr.us-east-1.amazonaws.com/frontend:latest
+                                docker push 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-api:latest
+                                docker push 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-worker:latest
+                                docker push 054037114964.dkr.ecr.us-east-1.amazonaws.com/frontend:latest
+                            "
+                        """
+                        
                     }
                 }
             }
