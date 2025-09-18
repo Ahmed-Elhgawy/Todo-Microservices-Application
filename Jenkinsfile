@@ -25,15 +25,18 @@ pipeline {
                     sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format template --template "@/usr/bin/html.tpl" -o trivy-worker.html worker'
                     sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format template --template "@/usr/bin/html.tpl" -o trivy-frontend.html frontend'
                 }
-
-                publishHTML([
-                    reportDir: '.',
-                    reportFiles: 'trivy-api.html,trivy-worker.html,trivy-frontend.html',
-                    reportName: 'Trivy Vulnerability Report',
-                    keepAll: true,
-                    alwaysLinkToLastBuild: true,
-                    allowMissing: false
-                ])
+            }
+            post {
+                success {
+                    publishHTML([
+                        reportDir: '.',
+                        reportFiles: 'trivy-api.html,trivy-worker.html,trivy-frontend.html',
+                        reportName: 'Trivy Vulnerability Report',
+                        keepAll: true,
+                        alwaysLinkToLastBuild: true,
+                        allowMissing: false
+                    ])
+                }
             }
         }
 
@@ -83,6 +86,14 @@ pipeline {
                     """
                 }
             }
+            post {
+                success {
+                    slackSend color: "good", message: "✅ Application is running"
+                }
+                failure {
+                    slackSend color: "danger", message: "❌ Application is NOT running"
+                }
+            }
         }
 
         stage('Destroy Test enviornment') {
@@ -120,7 +131,29 @@ pipeline {
             }
         }
 
+        stage('Manual Gate') {
+            steps {
+                script {
+                    def userInput = input(
+                        id: 'UserInput',
+                        message: 'Choose the next action:',
+                        parameters: [
+                            choice(name: 'ACTION', choices: ['Continue', 'Abort'], description: 'Select what to do')
+                        ]
+                    )
+
+                    echo "You chose: ${userInput}"
+                    if (userInput == 'Abort') {
+                        error("Pipeline aborted by user")
+                    }
+                }
+            }
+        }
+
         stage('Deploy to Kubernetes Cluster') {
+            when {
+               branch 'main'
+            }
             steps {
                 script {
                     withKubeConfig(credentialsId: 'k8s-jenkins-token', namespace: 'default', serverUrl: 'https://192.168.49.2:8443') {
