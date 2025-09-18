@@ -118,12 +118,12 @@ pipeline {
                         sh """
                             ssh -o StrictHostKeyChecking=no ec2-user@${DOCKER_INSTANCE_IP} "
                                 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REPO}
-                                docker tag todo-microservices-api-service ${ECR_REPO}/todo-api:${env.BUILD_URL}
-                                docker tag todo-microservices-worker ${ECR_REPO}/todo-worker:${env.BUILD_URL}
-                                docker tag todo-microservices-frontend-service ${ECR_REPO}/frontend:${env.BUILD_URL}
-                                docker push ${ECR_REPO}/todo-api:${env.BUILD_URL}
-                                docker push ${ECR_REPO}/todo-worker:${env.BUILD_URL}
-                                docker push ${ECR_REPO}/frontend:${env.BUILD_URL}
+                                docker tag todo-microservices-api-service ${ECR_REPO}/todo-api:${env.BUILD_NUMBER}
+                                docker tag todo-microservices-worker ${ECR_REPO}/todo-worker:${env.BUILD_NUMBER}
+                                docker tag todo-microservices-frontend-service ${ECR_REPO}/frontend:${env.BUILD_NUMBER}
+                                docker push ${ECR_REPO}/todo-api:${env.BUILD_NUMBER}
+                                docker push ${ECR_REPO}/todo-worker:${env.BUILD_NUMBER}
+                                docker push ${ECR_REPO}/frontend:${env.BUILD_NUMBER}
                             "
                         """
                     }
@@ -155,9 +155,9 @@ pipeline {
             steps {
                 script {
                     sh """
-                       sed -i 's|${ECR_REPO}/todo-api:[^[:space:]]*|${ECR_REPO}/todo-api:${env.BUILD_URL}|' kubernetes/deployments.yaml
-                       sed -i 's|${ECR_REPO}/todo-worker:[^[:space:]]*|${ECR_REPO}/todo-worker:${env.BUILD_URL}|' kubernetes/deployments.yaml
-                       sed -i 's|${ECR_REPO}/frontend:[^[:space:]]*|${ECR_REPO}/frontend:${env.BUILD_URL}|' kubernetes/deployments.yaml
+                       sed -i 's|${ECR_REPO}/todo-api:[^[:space:]]*|${ECR_REPO}/todo-api:${env.BUILD_NUMBER}|' kubernetes/deployments.yaml
+                       sed -i 's|${ECR_REPO}/todo-worker:[^[:space:]]*|${ECR_REPO}/todo-worker:${env.BUILD_NUMBER}|' kubernetes/deployments.yaml
+                       sed -i 's|${ECR_REPO}/frontend:[^[:space:]]*|${ECR_REPO}/frontend:${env.BUILD_NUMBER}|' kubernetes/deployments.yaml
                     """
                 }
             }
