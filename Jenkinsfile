@@ -5,9 +5,9 @@ pipeline {
         stage('build Docker Images') {
             steps {
                 script {
-                    sh 'docker build -t api ./api'
-                    sh 'docker build -t worker ./worker'
-                    sh 'docker build -t frontend ./frontend'
+                    sh 'docker build -t api ./todo-microservices/api/'
+                    sh 'docker build -t worker ./todo-microservices/worker/'
+                    sh 'docker build -t frontend ./todo-microservices/frontend/'
                 }
             }
         }
