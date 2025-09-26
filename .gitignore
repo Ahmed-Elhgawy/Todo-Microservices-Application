@@ -6,4 +6,7 @@ jenkins-credentials/
 
 terraform/
 
+ansible
+.ansible
+
 documentation.md

@@ -1,7 +1,16 @@
-FROM nginx:alpine
+FROM node:20-alpine
 
-COPY . /usr/share/nginx/html
+WORKDIR /frontend
+
+COPY package.json package-lock.json* ./
+
+RUN npm ci --production
+
+COPY . .
+
+ENV PORT=80
+ENV API=http://api-service:3000
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["npm", "start"]
