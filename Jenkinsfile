@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_INSTANCE_IP = "<INSTANCE_PUBLIC_IP>"
+        DOCKER_INSTANCE_IP = "18.208.212.202"
         APP_REPO = "https://github.com/Ahmed-Elhgawy/todo-microservice-app.git"
         APP_REPO_SSH = "git@github.com:Ahmed-Elhgawy/todo-microservice-app.git"
-        ECR_REPO = "<USER_ID>.dkr.ecr.<REGION>.amazonaws.com"
+        ECR_REPO = "054037114964.dkr.ecr.us-east-1.amazonaws.com"
     }
 
     stages {
