@@ -1,0 +1,213 @@
+---
+- name: Install Containerd
+  hosts: cluster_Kubernetes
+  gather_facts: false
+  tasks:
+    - name: Download & Unarchive the Containerd file
+      ansible.builtin.unarchive:
+        src: https://github.com/containerd/containerd/releases/download/v2.0.2/containerd-2.0.2-linux-amd64.tar.gz
+        dest: /usr/local
+        remote_src: true
+        mode: '0755'
+    - name: Create Directory for Containerd service
+      ansible.builtin.file:
+        path: /usr/local/lib/systemd/system
+        state: directory
+        mode: '0755'
+        recurse: true
+
+    - name: Download Containerd service file
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/containerd/containerd/main/containerd.service
+        dest: /usr/local/lib/systemd/system/containerd.service
+        mode: '0644'
+
+    - name: Start Containerd service
+      ansible.builtin.systemd:
+        name: containerd
+        state: started
+        enabled: true
+        daemon_reload: true
+
+- name: Install runc
+  hosts: cluster_Kubernetes
+  gather_facts: false
+  tasks:
+    - name: Download runc file
+      ansible.builtin.get_url:
+        url: https://github.com/opencontainers/runc/releases/download/v1.2.5/runc.amd64
+        dest: /usr/local/sbin/runc
+        mode: '0755'
+
+- name: Install CNI Plugin
+  hosts: cluster_Kubernetes
+  gather_facts: false
+  tasks:
+    - name: Create Directory to CNI plugin
+      ansible.builtin.file:
+        path: /opt/cni/bin
+        state: directory
+        recurse: true
+        mode: '0755'
+    - name: Download & Unarchive CNI Plugin file
+      ansible.builtin.unarchive:
+        src: https://github.com/containernetworking/plugins/releases/download/v1.6.2/cni-plugins-linux-amd64-v1.6.2.tgz
+        dest: /opt/cni/bin
+        remote_src: true
+        mode: '0755'
+
+- name: Install Dependencies
+  hosts: cluster_Kubernetes
+  gather_facts: false
+  tasks:
+    - name: Install Dependencies
+      ansible.builtin.apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gpg
+        state: present
+        update_cache: true
+
+- name: Install Kubeadm, Kubelet & Kubectl
+  hosts: cluster_Kubernetes
+  gather_facts: false
+  tasks:
+    # For Debain Based Linux
+    - name: Add Kubernetes GPG Keys
+      ansible.builtin.get_url:
+        url: https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key
+        dest: /tmp/kubernetes-release.key
+        mode: '0644'
+
+    - name: Convert GPG key to dearmored format
+      ansible.builtin.command:
+        cmd: gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg /tmp/kubernetes-release.key
+      args:
+        creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    - name: Add Kubernetes Repository
+      ansible.builtin.lineinfile:
+        path: /etc/apt/sources.list.d/kubernetes.list
+        line: deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /
+        create: true
+        mode: '0644'
+
+    - name: Install Kubeadm, Kubelet & Kubectl
+      ansible.builtin.apt:
+        pkg:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+        update_cache: true
+
+    - name: Start Kubelet Service
+      ansible.builtin.systemd:
+        name: kubelet
+        state: started
+        enabled: true
+        daemon_reload: true
+
+# Master Node Configuration
+- name: Initialize the cluster Master
+  hosts: Name_master_instance
+  gather_facts: false
+  tasks:
+    - name: Enable IP forwarding (runtime)
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        state: present
+        reload: true
+    - name: Turn off Swap
+      ansible.builtin.command:
+        cmd: sudo swapoff -a
+      args:
+        creates: /etc/kubernetes/cluster.int
+    - name: Initialize Kubernetes cluster with kubeadm
+      ansible.builtin.command:
+        cmd: kubeadm init
+      args:
+        creates: /etc/kubernetes/admin.conf
+
+    - name: Create Kube Configuration Directory
+      ansible.builtin.file:
+        path: /home/ubuntu/.kube/
+        state: directory
+        recurse: true
+        mode: '0755'
+        owner: "ubuntu"
+        group: "ubuntu"
+    - name: Set Kube Configuration file
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/ubuntu/.kube/config
+        remote_src: true
+        mode: '0644'
+
+- name: Configure Kubernetes Cluster
+  hosts: Name_master_instance
+  vars_files: ./vars/vars.yaml
+  become: true
+  become_user: ubuntu
+  gather_facts: false
+  tasks:
+    - name: Install a pod network
+      ansible.builtin.command:
+        cmd: kubectl apply -f https://reweave.azurewebsites.net/k8s/v1.29/net.yaml
+      args:
+        creates: /etc/kubernetes/weave.net
+
+- name: Generate Join Command for Worker Nodes
+  hosts: Name_master_instance
+  tasks:
+    - name: Generate join command
+      ansible.builtin.command:
+        cmd: kubeadm token create --print-join-command
+      register: join_cmd
+      args:
+        creates: /tmp/kube_join.sh
+
+    - name: Save join script on master
+      ansible.builtin.copy:
+        dest: /tmp/kube_join.sh
+        content: |
+          #!/bin/bash
+          {{ join_cmd.stdout }} --node-name worker
+        mode: '0755'
+
+    - name: Fetch join script back to control node
+      ansible.builtin.fetch:
+        src: /tmp/kube_join.sh
+        dest: ./kube_join.sh
+        flat: true
+
+# Worker Node Configuration
+- name: Initialize the cluster Workers
+  hosts: Name_worker_instance
+  gather_facts: false
+  tasks:
+    - name: Enable IP forwarding (runtime)
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        state: present
+        reload: true
+    - name: Turn off Swap
+      ansible.builtin.command:
+        cmd: sudo swapoff -a
+      args:
+        creates: /etc/kubernetes/cluster.int
+
+    - name: Copy join script from control node
+      ansible.builtin.copy:
+        src: ./kube_join.sh
+        dest: /tmp/kube_join.sh
+        mode: '0755'
+    - name: Run kubeadm join
+      ansible.builtin.command:
+        cmd: bash /tmp/kube_join.sh --v=5
+      args:
+        creates: /etc/kubernetes/worker.join
