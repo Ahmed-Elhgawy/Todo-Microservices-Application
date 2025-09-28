@@ -17,7 +17,7 @@ spec:
       imagePullSecrets:
       - name: regcred
       containers:
-      - image: 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-api:latest
+      - image: 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-api:25
         name: api  
         resources:
           limits:
@@ -76,7 +76,7 @@ spec:
       imagePullSecrets:
       - name: regcred
       containers:
-      - image: 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-worker:latest
+      - image: 054037114964.dkr.ecr.us-east-1.amazonaws.com/todo-worker:25
         name: worker  
         resources:
           limits:
@@ -131,7 +131,7 @@ spec:
       imagePullSecrets:
       - name: regcred
       containers:
-      - image: 054037114964.dkr.ecr.us-east-1.amazonaws.com/frontend:latest
+      - image: 054037114964.dkr.ecr.us-east-1.amazonaws.com/frontend:25
         imagePullPolicy: Always
         name: frontend  
         resources:
