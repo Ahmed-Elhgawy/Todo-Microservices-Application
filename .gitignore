@@ -4,9 +4,11 @@ commands.sh
 *-secret.yaml
 jenkins-credentials/
 
-terraform/
+terraform/.terraform
+terraform/backend.tf
+terraform/terraform.tfvars
 
-ansible
 .ansible
 
 documentation.md
+squance.sh

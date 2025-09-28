@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_INSTANCE_IP = "107.20.36.187"
-        APP_REPO = "https://github.com/Ahmed-Elhgawy/todo-microservice-app.git"
-        APP_REPO_SSH = "git@github.com:Ahmed-Elhgawy/todo-microservice-app.git"
-        ECR_REPO = "054037114964.dkr.ecr.us-east-1.amazonaws.com"
+        DOCKER_INSTANCE_IP = "docker_instance_ip, <bastion_instance_public_ip>"         // ===> Need to be changed
+        APP_REPO = "https://github.com/Ahmed-Elhgawy/todo-microservice-app.git"         
+        ARGOCD_REPO = "destination ArgoCD repo"                                         // ===> Need to be changed
+        ECR_REPO = "repo_id for example <054037114964.dkr.ecr.us-east-1.amazonaws.com>" // ===> Need to be changed
     }
 
     stages {
@@ -19,7 +19,7 @@ pipeline {
             }
         }
 
-        stage('Chech Container Security') {
+        stage('Check Container Security') {
             steps {
                 script {
                     sh 'trivy image --severity MEDIUM,HIGH,CRITICAL --format template --template "@/usr/bin/html.tpl" -o trivy-api.html api'
@@ -73,7 +73,7 @@ pipeline {
             }
         }
 
-        stage('Chech the Application is running') {
+        stage('Check the Application is running') {
             steps {
                 script {
                     sleep 30
@@ -173,7 +173,7 @@ pipeline {
 
                             git add kubernetes/deployments.yaml
                             git commit -m "Update image tag to ${BUILD_NUMBER}"
-                            git push ${APP_REPO_SSH} HEAD:main
+                            git push ${ARGOCD_REPO} HEAD:main
                         """
                     }
                 }
