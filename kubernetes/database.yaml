@@ -6,7 +6,7 @@ metadata:
   name: database-statefulset
 spec:
   serviceName: database-headless
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: database-statefulset
@@ -35,44 +35,16 @@ spec:
             mountPath: /var/lib/mysql
           - name: mysql-init
             mountPath: /docker-entrypoint-initdb.d
-            readOnly: true
-          - name: mysql-init-repl
-            mountPath: /docker-entrypoint-initdb.d/replication
-          - name: config
-            mountPath: /etc/mysql/conf.d
-        command: ["/bin/bash", "-c"]
-        args:
-          - |
-            if [[ "$(hostname)" == *-0 ]]; then
-              cp /etc/mysql/conf.d/master.cnf /etc/mysql/conf.d/server.cnf
-            else
-              cp /etc/mysql/conf.d/slave.cnf /etc/mysql/conf.d/server.cnf
-            fi
-            exec docker-entrypoint.sh mysqld
       volumes:
       - name: mysql-init
         configMap:
-          name: mysql-init-1
-      - name: mysql-init-repl
-        configMap:
-          name: mysql-init-2
-          items:
-            - key: init-replication.sh
-              path: init-replication.sh
-      - name: config
-        configMap:
-          name: mysql-init-2
-          items:
-          - key: master.cnf
-            path: master.cnf
-          - key: slave.cnf
-            path: slave.cnf
+          name: mysql-init
   volumeClaimTemplates:
   - metadata:
       name: mysql-data
     spec:
       accessModes: [ "ReadWriteOnce" ]
-      storageClassName: ebs-sc
+      storageClassName: local-storage
       resources:
         requests:
           storage: 5Gi
@@ -94,12 +66,37 @@ spec:
 
 ---
 apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  local:
+    path: /mnt/mysql-data/master   
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+            - worker
+
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: mysql-init-1
+  name: mysql-init
 data:
   init.sql: |
     CREATE DATABASE IF NOT EXISTS todo_app;
+    USE todo_app;
+
     USE todo_app;
 
     CREATE TABLE IF NOT EXISTS todos (
@@ -117,35 +114,3 @@ data:
       payload JSON,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: mysql-init-2
-data:
-  master.cnf: |
-    [mysqld]
-    log-bin=mysql-bin
-    server-id=1
-
-  slave.cnf: |
-    [mysqld]
-    relay-log=relay-bin
-    server-id=2
-
-  init-replication.sh: |
-    #!/bin/bash
-    set -ex
-    if [[ "$(hostname)" == *-0 ]]; then
-      echo "Running on master - skipping replication setup"
-    else
-      echo "Setting up replication on replica"
-      mysql -h mysql-0.mysql -uroot -p$MYSQL_ROOT_PASSWORD -e "
-        CHANGE MASTER TO
-          MASTER_HOST='mysql-0.mysql',
-          MASTER_USER='repl',
-          MASTER_PASSWORD='$MYSQL_REPL_PASSWORD',
-          MASTER_AUTO_POSITION=1;
-        START SLAVE;"
-    fi
