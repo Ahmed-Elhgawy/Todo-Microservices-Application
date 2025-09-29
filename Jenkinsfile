@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_INSTANCE_IP = "docker_instance_ip, <bastion_instance_public_ip>"         // ===> Need to be changed
-        APP_REPO = "https://github.com/Ahmed-Elhgawy/todo-microservice-app.git"         
+        APP_REPO = "https://github.com/Ahmed-Elhgawy/Todo-Microservices-Application.git"         
         ARGOCD_REPO = "destination ArgoCD repo"                                         // ===> Need to be changed
         ECR_REPO = "repo_id for example <054037114964.dkr.ecr.us-east-1.amazonaws.com>" // ===> Need to be changed
     }
