@@ -12,3 +12,8 @@ terraform/terraform.tfvars
 
 documentation.md
 squance.sh
+
+kube_join.sh
+.vscode
+
+*.drawio

@@ -170,41 +170,6 @@ resource "aws_iam_role" "worker-instance-role" {
     ],
   })
 }
-
-resource "aws_iam_policy" "ebs-policy" {
-  name        = "ebs-policy"
-  path        = "/"
-  description = "policy gives access to EBS to create, attach, and delete"
-
-  # Terraform's "jsonencode" function converts a
-  # Terraform expression result to valid JSON syntax.
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = [
-          "ec2:AttachVolume",
-          "ec2:CreateVolume",
-          "ec2:DeleteVolume",
-          "ec2:DescribeAvailabilityZones",
-          "ec2:DescribeInstances",
-          "ec2:DescribeSnapshots",
-          "ec2:DescribeTags",
-          "ec2:DescribeVolumes",
-          "ec2:DescribeVolumeStatus",
-          "ec2:DetachVolume",
-          "ec2:ModifyVolume"
-        ]
-        Effect   = "Allow"
-        Resource = "*"
-      },
-    ]
-  })
-}
-resource "aws_iam_role_policy_attachment" "ebs_worker_access" {
-  role       = aws_iam_role.worker-instance-role.name
-  policy_arn = aws_iam_policy.ebs-policy.arn
-}
 resource "aws_iam_role_policy_attachment" "ecr_worker_access" {
   role       = aws_iam_role.worker-instance-role.name
   policy_arn = aws_iam_policy.ecr-policy.arn

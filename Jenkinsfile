@@ -9,7 +9,7 @@ pipeline {
     }
 
     stages {
-        stage('build Docker Images') {
+        stage('Build Docker Images') {
             steps {
                 script {
                     sh 'docker build -t api ./todo-microservices/api/'
